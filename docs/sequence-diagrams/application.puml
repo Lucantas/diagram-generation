@@ -1,0 +1,1105 @@
+@startuml
+namespace api {
+    class Error << (S,Aquamarine) >> {
+        + Code *string
+        + Message *string
+
+    }
+    class Product << (S,Aquamarine) >> {
+        + ID uint
+        + Name string
+        + Abbreviation string
+
+    }
+    class ProductAbbreviation << (S,Aquamarine) >> {
+        + String() string
+
+    }
+    class ProductResponse << (S,Aquamarine) >> {
+        + List []Product
+        + Error Error
+
+    }
+    class UserProduct << (S,Aquamarine) >> {
+        + ID uint
+        + Name string
+        + Abbreviation string
+        + CreatedAt time.Time
+        + ExpireAt *time.Time
+        + EndingAt *time.Time
+        + Code string
+        + Mini bool
+
+    }
+    class UserProductResponse << (S,Aquamarine) >> {
+        + List []UserProduct
+        + Error Error
+
+    }
+    class api.ProductAbbreviation << (T, #FF7700) >>  {
+    }
+}
+
+
+namespace caching {
+    interface Service  {
+        + Get(ctx context.Context, key string) (*string, error)
+        + Set(ctx context.Context, key string, value string, ttl time.Duration) error
+        + Delete(ctx context.Context, key string) error
+        + DeleteMany(ctx context.Context, pattern string) error
+
+    }
+}
+
+
+namespace crosscut {
+    interface Config  {
+        + UserProductsDBSecretParameter() string
+        + UserProductsDBUser() string
+        + UserProductsDBName() string
+        + UserProductsDBHostReader() string
+        + UserProductsDBHostWriter() string
+        + UserProductsDBPort() string
+        + PortalDBPasswordParameter() string
+        + PortalDBUser() string
+        + PortalDBName() string
+        + PortalDBHostReader() string
+        + PortalDBHostWriter() string
+        + PortalDBPort() string
+        + CypherKeyParameter() string
+        + Stage() string
+        + RedisEndpoint() string
+        + RedisDatabase() int
+        + SuggestionsCacheKey(userID uint64) string
+        + ExpiredProductsMiniCacheKey(userID uint64) string
+        + ExpiredProductsCompleteCacheKey(userID uint64) string
+        + EndingProductsMiniCacheKey(userID uint64) string
+        + EndingProductsCompleteCacheKey(userID uint64) string
+        + UsedProductsCacheKeyTemplate() string
+        + UsedProductsMiniCacheKey(userID uint64, profileID uint64, productIDs []uint) string
+        + UsedProductsCompleteCacheKey(userID uint64, profileID uint64, productIDs []uint) string
+        + LatestProductsCacheKeyTemplate() string
+        + LatestProductsCacheKey(userID uint64, limit uint) string
+        + AstrologyChartCacheKey(userID uint64, birthDateID string, latitude string, longitude string, productKey string) string
+        + ClientTTL() time.Duration
+        + ProductResultCacheKey(ID uint64, productType uint8) string
+        + EndOfDayTTL() time.Duration
+        + SevenDaysTTL() time.Duration
+
+    }
+    class Params << (S,Aquamarine) >> {
+        + CypherKeyParameter string
+        + UserProductsDBHostReader string
+        + UserProductsDBHostWriter string
+        + UserProductsDBName string
+        + UserProductsDBSecretParameter string
+        + UserProductsDBPort string
+        + UserProductsDBUser string
+        + PortalDBHostReader string
+        + PortalDBHostWriter string
+        + PortalDBName string
+        + PortalDBPasswordParameter string
+        + PortalDBPort string
+        + PortalDBUser string
+        + Stage string
+        + RedisEndpoint string
+        + RedisDatabase string
+
+    }
+    class config << (S,Aquamarine) >> {
+        - params *Params
+
+        + UserProductsDBSecretParameter() string
+        + UserProductsDBUser() string
+        + UserProductsDBName() string
+        + UserProductsDBHostReader() string
+        + UserProductsDBHostWriter() string
+        + UserProductsDBPort() string
+        + PortalDBPasswordParameter() string
+        + PortalDBUser() string
+        + PortalDBName() string
+        + PortalDBHostReader() string
+        + PortalDBHostWriter() string
+        + PortalDBPort() string
+        + CypherKeyParameter() string
+        + Stage() string
+        + RedisEndpoint() string
+        + RedisDatabase() int
+        + SuggestionsCacheKey(userID uint64) string
+        + ExpiredProductsMiniCacheKey(userID uint64) string
+        + ExpiredProductsCompleteCacheKey(userID uint64) string
+        + EndingProductsMiniCacheKey(userID uint64) string
+        + EndingProductsCompleteCacheKey(userID uint64) string
+        + SevenDaysTTL() time.Duration
+        + UsedProductsCacheKeyTemplate() string
+        + UsedProductsMiniCacheKey(userID uint64, profileID uint64, productIDs []uint) string
+        + UsedProductsCompleteCacheKey(userID uint64, profileID uint64, productIDs []uint) string
+        + LatestProductsCacheKeyTemplate() string
+        + LatestProductsCacheKey(userID uint64, limit uint) string
+        + AstrologyChartCacheKey(userID uint64, birthDateID string, latitude string, longitude string, productKey string) string
+        + ClientTTL() time.Duration
+        + ProductResultCacheKey(id uint64, productType uint8) string
+        + EndOfDayTTL() time.Duration
+
+    }
+}
+
+"crosscut.Config" <|-- "crosscut.config"
+
+namespace entity {
+    class UserProductRuleTypeComplete << (S,Aquamarine) >> {
+        + Type() uint8
+
+    }
+    class UserProductRuleTypeMini << (S,Aquamarine) >> {
+        + Type() uint8
+
+    }
+    interface UserProductRulerType  {
+        + Type() uint8
+
+    }
+}
+
+"entity.UserProductRulerType" <|-- "entity.UserProductRuleTypeComplete"
+"entity.UserProductRulerType" <|-- "entity.UserProductRuleTypeMini"
+
+namespace external {
+    class MySQLParams << (S,Aquamarine) >> {
+        + Host string
+        + Port string
+        + User string
+        + Password string
+        + Database string
+
+    }
+    class MySQLPool << (S,Aquamarine) >> {
+        - params *MySQLParams
+
+        + GetPool() (*sql.DB, error)
+
+    }
+    class PostgresParams << (S,Aquamarine) >> {
+        + Host string
+        + Port string
+        + User string
+        + Password string
+        + Database string
+
+    }
+    class PostgresPool << (S,Aquamarine) >> {
+        - params *PostgresParams
+
+        + GetPool() (*sql.DB, error)
+
+    }
+    class awsEventBridgeEventService << (S,Aquamarine) >> {
+        - client *eventbridge.Client
+        - eventBus string
+
+        + NotifyProductFiled(ctx context.Context, userID uint64, code string) error
+
+    }
+    class awsLibParametersService << (S,Aquamarine) >> {
+        - client *ssm.Client
+
+        + GetParameter(name string, withDecryption bool) (string, error)
+
+    }
+    class birthDateIDService << (S,Aquamarine) >> {
+        + Parse(birthDateID string) (time.Time, error)
+        + Build(birthDateTime time.Time, hasBirthTime bool) (string, error)
+
+    }
+    class cypherCryptoService << (S,Aquamarine) >> {
+        - cypher cypher.Cypher
+
+        + Encrypt(value string) (string, error)
+        + Decrypt(value string) (string, error)
+
+    }
+    class logrusLoggingService << (S,Aquamarine) >> {
+        - entry *logrus.Entry
+
+        + WithFields(fields logging.Fields) logging.Service
+        + WithError(err error) logging.Service
+        + Debug(args ...any) 
+        + Info(args ...any) 
+        + Warn(args ...any) 
+        + Error(args ...any) 
+        + Fatal(args ...any) 
+        + Panic(args ...any) 
+
+    }
+    class mySQLAstrologyProfileRepository << (S,Aquamarine) >> {
+        - config crosscut.Config
+        - dbReader *sql.DB
+        - dbWriter *sql.DB
+
+        - getAstrologyProfile(ctx context.Context, userID uint64, profileType uint8) (*usecase.AstrologyProfileDTO, error)
+
+        + GetMainAstrologyProfile(ctx context.Context, userID uint64) (*usecase.AstrologyProfileDTO, error)
+
+    }
+    class mySQLAstrologyRepository << (S,Aquamarine) >> {
+        - config crosscut.Config
+        - dbReader *sql.DB
+        - dbWriter *sql.DB
+
+        - getSexualityChart(ctx context.Context, param usecase.AstrologyChartDTO) (usecase.UserProductAllFieldsDTO, error)
+        - getBirthChart(ctx context.Context, param usecase.AstrologyChartDTO) (usecase.UserProductAllFieldsDTO, error)
+        - getUserProductData(ctx context.Context, query string, param usecase.AstrologyChartDTO) (usecase.UserProductAllFieldsDTO, error)
+
+        + GetChart(ctx context.Context, param usecase.AstrologyChartDTO) (usecase.UserProductAllFieldsDTO, error)
+
+    }
+    class mysqlGeneratedProductRepository << (S,Aquamarine) >> {
+        - dbReader *sql.DB
+        - dbWriter *sql.DB
+
+        + ToFile(ctx context.Context, userID uint64, code string) error
+        + FindByCode(ctx context.Context, code string) (*usecase.GeneratedProductDTO, error)
+
+    }
+    class postgresUserProductRepository << (S,Aquamarine) >> {
+        - config crosscut.Config
+        - dbReader *sql.DB
+        - dbWriter *sql.DB
+
+        - expiredProducts(ctx context.Context, userID uint64, mini bool) ([]usecase.UserProductDTO, error)
+        - endingProducts(ctx context.Context, userID uint64, mini bool) ([]usecase.UserProductDTO, error)
+        - usedProducts(ctx context.Context, userID uint64, profileID uint64, productIDs []uint, mini bool) ([]usecase.UserProductDTO, error)
+
+        + UsedProducts(ctx context.Context, userID uint64) ([]uint, error)
+        + ExpiredProductsMini(ctx context.Context, userID uint64) ([]usecase.UserProductDTO, error)
+        + ExpiredProductsComplete(ctx context.Context, userID uint64) ([]usecase.UserProductDTO, error)
+        + EndingProductsMini(ctx context.Context, userID uint64) ([]usecase.UserProductDTO, error)
+        + EndingProductsComplete(ctx context.Context, userID uint64) ([]usecase.UserProductDTO, error)
+        + UsedProductsMini(ctx context.Context, userID uint64, profileID uint64, productIDs []uint) ([]usecase.UserProductDTO, error)
+        + UsedProductsComplete(ctx context.Context, userID uint64, profileID uint64, productIDs []uint) ([]usecase.UserProductDTO, error)
+        + LatestProducts(ctx context.Context, userID uint64, limit uint) ([]usecase.UserProductDTO, error)
+        + Save(ctx context.Context, product usecase.UserProductAllFieldsDTO) (usecase.UserProductAllFieldsDTO, error)
+
+    }
+    class productAdapterService << (S,Aquamarine) >> {
+        - mapProduct <font color=blue>map</font>[int]usecase.ProductTranslatedDTO
+        - mapAbbreviation <font color=blue>map</font>[string]int
+
+        + FromUserProduct(p usecase.UserProductDTO) usecase.UserProductResultDTO
+        + FromID(p uint) usecase.ProductResultDTO
+        + FromAbbreviation(a string) usecase.UserProductResultDTO
+        + FromEventDetail(d usecase.UserProductEventDetail) usecase.UserProductAllFieldsDTO
+
+    }
+    class redisCachingService << (S,Aquamarine) >> {
+        - config crosscut.Config
+        - client rueidis.Client
+        - syncTimeout time.Duration
+        - asyncTimeout time.Duration
+
+        + Get(ctx context.Context, key string) (*string, error)
+        + Set(ctx context.Context, key string, value string, ttl time.Duration) error
+        + Delete(ctx context.Context, key string) error
+        + DeleteMany(ctx context.Context, pattern string) error
+
+    }
+    class siteIDTranslatorService << (S,Aquamarine) >> {
+        - siteMap <font color=blue>map</font>[usecase.SiteID]usecase.SiteDTO
+
+        + Translate(siteID usecase.SiteID) (usecase.SiteDTO, error)
+
+    }
+    class staticAssetsService << (S,Aquamarine) >> {
+        - basePath string
+
+        + ErrorHTML() (string, error)
+
+    }
+    class userDecodingService << (S,Aquamarine) >> {
+        - client service.Crypto
+
+        + Decode(ctx context.Context, userCode string) (uint64, uint8, error)
+
+    }
+}
+
+"usecase.EventService" <|-- "external.awsEventBridgeEventService"
+"service.Parameters" <|-- "external.awsLibParametersService"
+"usecase.BirthDateIDService" <|-- "external.birthDateIDService"
+"service.Crypto" <|-- "external.cypherCryptoService"
+"usecase.AstrologyProfileRepository" <|-- "external.mySQLAstrologyProfileRepository"
+"usecase.AstrologyRepository" <|-- "external.mySQLAstrologyRepository"
+"usecase.GeneratedProductRepository" <|-- "external.mysqlGeneratedProductRepository"
+"usecase.UserProductRepository" <|-- "external.postgresUserProductRepository"
+"usecase.ProductAdapterService" <|-- "external.productAdapterService"
+"caching.Service" <|-- "external.redisCachingService"
+"usecase.SiteIDTranslatorService" <|-- "external.siteIDTranslatorService"
+"service.StaticAssetsService" <|-- "external.staticAssetsService"
+"service.UserDecoding" <|-- "external.userDecodingService"
+
+namespace factory {
+    class secret << (S,Aquamarine) >> {
+        + User string
+        + Password string
+
+    }
+}
+
+
+namespace graphql {
+    interface Controlling  {
+        + Handle(ctx context.Context, requestID string, event *Event) *Response
+
+    }
+    class Error << (S,Aquamarine) >> {
+        + Code string
+        + Message string
+        + RequestID string
+
+    }
+    class Event << (S,Aquamarine) >> {
+        + Arguments <font color=blue>map</font>[string]any
+        + Identity <font color=blue>map</font>[string]any
+
+    }
+    class HandlerFunc << (S,Aquamarine) >> {
+        + Handle(ctx context.Context, requestID string, event *Event) *Response
+
+    }
+    interface Operation  {
+        + SpecificOperation(ctx context.Context, requestID string, event *Event) *Response
+
+    }
+    class Response << (S,Aquamarine) >> {
+        + Result any
+        + Error *Error
+
+    }
+    class controller << (S,Aquamarine) >> {
+        - operation Operation
+
+        + Handle(ctx context.Context, requestID string, event *Event) *Response
+
+    }
+    class fileProductOperation << (S,Aquamarine) >> {
+        - useCase usecase.ProductFiler
+
+        + SpecificOperation(ctx context.Context, requestID string, event *Event) *Response
+
+    }
+    class graphql.Adapter << (T, #FF7700) >>  {
+    }
+    class graphql.HandlerFunc << (T, #FF7700) >>  {
+    }
+    class "<font color=blue>func</font>(context.Context, string, *Event) *Response" as fontcolorbluefuncfontcontextContextstringEventResponse {
+        'This class was created so that we can correctly have an alias pointing to this name. Since it contains dots that can break namespaces
+    }
+}
+
+"graphql.Controlling" <|-- "graphql.HandlerFunc"
+"graphql.Controlling" <|-- "graphql.controller"
+"graphql.Operation" <|-- "graphql.fileProductOperation"
+
+namespace http {
+    class HandlerFunc << (S,Aquamarine) >> {
+        + Handle(ctx context.Context, httpRequest *Request) *Response
+
+    }
+    class Identity << (S,Aquamarine) >> {
+        + SourceIP string
+        + UserAgent string
+
+    }
+    interface Operation  {
+        + RequiredParams() []string
+        + SpecificOperation(ctx context.Context, httpRequest *Request) *Response
+
+    }
+    class Request << (S,Aquamarine) >> {
+        + Body string
+        + Headers RequestHeaders
+        + HTTPMethod string
+        + QueryStringParameters <font color=blue>map</font>[string]string
+        + PathParameters <font color=blue>map</font>[string]string
+        + RequestContext RequestContext
+        + Cookies []string
+
+    }
+    class RequestContext << (S,Aquamarine) >> {
+        + Identity Identity
+
+    }
+    class Response << (S,Aquamarine) >> {
+        + Body string
+        + Headers ResponseHeaders
+        + StatusCode int
+
+    }
+    interface WebControlling  {
+        + Handle(ctx context.Context, httpRequest *Request) *Response
+
+    }
+    class birthChartRedirectOperation << (S,Aquamarine) >> {
+        - urlBuilderUseCase usecase.AstrologyChartURLBuilder
+        - mainAstrologyProfileUseCase usecase.MainAstrologyProfileGetter
+        - staticAssetsService service.StaticAssetsService
+        - requestID string
+
+        - errorResponse() *Response
+
+        + RequiredParams() []string
+        + SpecificOperation(ctx context.Context, httpRequest *Request) *Response
+
+    }
+    class http.Adapter << (T, #FF7700) >>  {
+    }
+    class http.HandlerFunc << (T, #FF7700) >>  {
+    }
+    class http.RequestHeaders << (T, #FF7700) >>  {
+    }
+    class http.ResponseHeaders << (T, #FF7700) >>  {
+    }
+    class sexualityChartRedirectOperation << (S,Aquamarine) >> {
+        - useCase usecase.AstrologyChartURLBuilder
+        - staticAssetsService service.StaticAssetsService
+        - requestID string
+
+        + RequiredParams() []string
+        + SpecificOperation(ctx context.Context, httpRequest *Request) *Response
+
+    }
+    class webController << (S,Aquamarine) >> {
+        - controllerOperation Operation
+
+        + Handle(ctx context.Context, httpRequest *Request) *Response
+
+    }
+    class "<font color=blue>func</font>(context.Context, *Request) *Response" as fontcolorbluefuncfontcontextContextRequestResponse {
+        'This class was created so that we can correctly have an alias pointing to this name. Since it contains dots that can break namespaces
+    }
+}
+
+"http.WebControlling" <|-- "http.HandlerFunc"
+"http.Operation" <|-- "http.birthChartRedirectOperation"
+"http.Operation" <|-- "http.sexualityChartRedirectOperation"
+"http.WebControlling" <|-- "http.webController"
+
+namespace lambda {
+    class logData << (S,Aquamarine) >> {
+        + Level string
+        + Msg string
+        + RequestID string
+        + Time string
+        + Stack string
+
+    }
+}
+
+
+namespace logging {
+    interface Service  {
+        + WithError(err error) Service
+        + WithFields(fields Fields) Service
+        + Debug(args ...any) 
+        + Info(args ...any) 
+        + Warn(args ...any) 
+        + Error(args ...any) 
+        + Fatal(args ...any) 
+        + Panic(args ...any) 
+
+    }
+    class logging.Fields << (T, #FF7700) >>  {
+    }
+}
+
+
+namespace main {
+    class Event << (S,Aquamarine) >> {
+        + Identity <font color=blue>struct</font>{<font color=blue>struct</font>{string}}
+        + Identity <font color=blue>struct</font>{<font color=blue>struct</font>{string}}
+        + Identity <font color=blue>struct</font>{<font color=blue>struct</font>{string}}
+        + Identity <font color=blue>struct</font>{<font color=blue>struct</font>{string}}
+        + Detail <font color=blue>struct</font>{uint64}
+        + Arguments <font color=blue>struct</font>{uint}
+        + Identity <font color=blue>struct</font>{<font color=blue>struct</font>{string}}
+        + Arguments <font color=blue>struct</font>{uint}
+        + Identity <font color=blue>struct</font>{<font color=blue>struct</font>{string}}
+        + Arguments <font color=blue>struct</font>{[]api.ProductAbbreviation, uint64}
+        + Identity <font color=blue>struct</font>{<font color=blue>struct</font>{string}}
+        + Arguments <font color=blue>struct</font>{[]api.ProductAbbreviation, uint64}
+        + Identity <font color=blue>struct</font>{<font color=blue>struct</font>{string}}
+
+    }
+    class Lambda << (S,Aquamarine) >> {
+        - config crosscut.Config
+        - userDecodingService service.UserDecoding
+        - config crosscut.Config
+        - cachingService caching.Service
+        - portalDBReader *sql.DB
+        - portalDBWriter *sql.DB
+        - corsOptions *middleware.CorsOptions
+        - userDecodingService service.UserDecoding
+        - config crosscut.Config
+        - cachingService caching.Service
+        - userProductsDBReader *sql.DB
+        - userProductsDBWriter *sql.DB
+        - config crosscut.Config
+        - cachingService caching.Service
+        - userProductsDBReader *sql.DB
+        - userProductsDBWriter *sql.DB
+        - config crosscut.Config
+        - cachingService caching.Service
+        - userProductsDBReader *sql.DB
+        - userProductsDBWriter *sql.DB
+        - config crosscut.Config
+        - cachingService caching.Service
+        - userProductsDBReader *sql.DB
+        - userProductsDBWriter *sql.DB
+        - config crosscut.Config
+        - cachingService caching.Service
+        - userProductsDBReader *sql.DB
+        - userProductsDBWriter *sql.DB
+        - config crosscut.Config
+        - cachingService caching.Service
+        - userProductsDBReader *sql.DB
+        - userProductsDBWriter *sql.DB
+        - config crosscut.Config
+        - portalDBReader *sql.DB
+        - portalDBWriter *sql.DB
+        - config crosscut.Config
+        - cachingService caching.Service
+        - config crosscut.Config
+        - cachingService caching.Service
+        - userProductsDBReader *sql.DB
+        - userProductsDBWriter *sql.DB
+        - config crosscut.Config
+        - cachingService caching.Service
+        - portalDBReader *sql.DB
+        - portalDBWriter *sql.DB
+        - corsOptions *middleware.CorsOptions
+        - userDecodingService service.UserDecoding
+        - config crosscut.Config
+        - cachingService caching.Service
+        - userProductsDBReader *sql.DB
+        - userProductsDBWriter *sql.DB
+        - config crosscut.Config
+        - cachingService caching.Service
+        - userProductsDBReader *sql.DB
+        - userProductsDBWriter *sql.DB
+        - config crosscut.Config
+        - cachingService caching.Service
+        - userProductsDBReader *sql.DB
+        - userProductsDBWriter *sql.DB
+
+        + Handler(ctx context.Context, event events.AppSyncLambdaAuthorizerRequest) (events.AppSyncLambdaAuthorizerResponse, error)
+        + Handler(ctx context.Context, request events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error)
+        + Handler(ctx context.Context, event usecase.EventData) error
+        + Handler(ctx context.Context, event usecase.EventData) error
+        + Handler(ctx context.Context, event Event) (api.UserProductResponse, error)
+        + Handler(ctx context.Context, event Event) (api.UserProductResponse, error)
+        + Handler(ctx context.Context, event Event) (api.UserProductResponse, error)
+        + Handler(ctx context.Context, event Event) (api.UserProductResponse, error)
+        + Handler(ctx context.Context, event *graphql.Event) (*graphql.Response, error)
+        + Handler(ctx context.Context, event Event) error
+        + Handler(ctx context.Context, event Event) (api.UserProductResponse, error)
+        + Handler(ctx context.Context, request events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error)
+        + Handler(ctx context.Context, event Event) (api.ProductResponse, error)
+        + Handler(ctx context.Context, event Event) (api.UserProductResponse, error)
+        + Handler(ctx context.Context, event Event) (api.UserProductResponse, error)
+
+    }
+}
+
+
+namespace middleware {
+    class CorsOptions << (S,Aquamarine) >> {
+        + AllowedOrigins []string
+        + AllowedMethods []string
+        + AllowedHeaders []string
+        + AllowCredentials bool
+
+    }
+}
+
+
+namespace queue {
+    class BatchItemFailure << (S,Aquamarine) >> {
+        + ItemIdentifier string
+
+    }
+    class BatchResponse << (S,Aquamarine) >> {
+        + BatchItemFailures []BatchItemFailure
+
+    }
+    class Message << (S,Aquamarine) >> {
+        + MessageID string
+        + Body string
+
+    }
+    interface Processing  {
+        + Perform(ctx context.Context, message []Message) BatchResponse
+
+    }
+}
+
+
+namespace service {
+    interface Crypto  {
+        + Encrypt(plainText string) (string, error)
+        + Decrypt(cipherText string) (string, error)
+
+    }
+    interface Parameters  {
+        + GetParameter(name string, withDecryption bool) (string, error)
+
+    }
+    interface StaticAssetsService  {
+        + ErrorHTML() (string, error)
+
+    }
+    interface UserDecoding  {
+        + Decode(ctx context.Context, userCode string) (uint64, uint8, error)
+
+    }
+}
+
+
+namespace usecase {
+    class AstrologyChartDTO << (S,Aquamarine) >> {
+        + ProductName string
+        + Latitude string
+        + Longitude string
+        + UserID uint64
+        + BirthDate string
+
+    }
+    class AstrologyChartParam << (S,Aquamarine) >> {
+        + BirthDateID string
+        + Latitude string
+        + Longitude string
+        + UserID uint64
+        + Complement string
+        + ChartName string
+        + FormatURL string
+
+    }
+    interface AstrologyChartURLBuilder  {
+        + Perform(ctx context.Context, param AstrologyChartParam) (string, error)
+
+    }
+    class AstrologyProfileDTO << (S,Aquamarine) >> {
+        + ProfileID uint64
+        + BirthDateID string
+        + BirthDate string
+        + BirthTime string
+        + Latitude string
+        + Longitude string
+        + GMT string
+        + ProfileType uint8
+
+    }
+    interface AstrologyProfileRepository  {
+        + GetMainAstrologyProfile(ctx context.Context, userID uint64) (*AstrologyProfileDTO, error)
+
+    }
+    interface AstrologyRepository  {
+        + GetChart(ctx context.Context, params AstrologyChartDTO) (UserProductAllFieldsDTO, error)
+
+    }
+    interface BirthDateIDService  {
+        + Parse(birthDateID string) (time.Time, error)
+        + Build(birthDateTime time.Time, hasBirthTime bool) (string, error)
+
+    }
+    interface BirthDateService  {
+        + Parse(dateTime string, timeZone string) time.Time
+
+    }
+    interface CreateUserProduct  {
+        + Perform(ctx context.Context, eventData EventData) (UserProductAllFieldsDTO, error)
+
+    }
+    interface EndingProductsComplete  {
+        + Perform(ctx context.Context, userID uint64) ([]UserProductResultDTO, error)
+
+    }
+    interface EndingProductsMini  {
+        + Perform(ctx context.Context, userID uint64) ([]UserProductResultDTO, error)
+
+    }
+    class EventData << (S,Aquamarine) >> {
+        + DetailType string
+        + Source string
+        + Detail UserProductEventDetail
+
+    }
+    interface EventService  {
+        + NotifyProductFiled(ctx context.Context, userID uint64, code string) error
+
+    }
+    interface ExpiredProductsComplete  {
+        + Perform(ctx context.Context, userID uint64) ([]UserProductResultDTO, error)
+
+    }
+    interface ExpiredProductsMini  {
+        + Perform(ctx context.Context, userID uint64) ([]UserProductResultDTO, error)
+
+    }
+    class GeneratedProductDTO << (S,Aquamarine) >> {
+        + ID uint64
+        + Code string
+        + Visible bool
+        + Type uint8
+
+    }
+    interface GeneratedProductRepository  {
+        + ToFile(ctx context.Context, userID uint64, code string) error
+        + FindByCode(ctx context.Context, code string) (*GeneratedProductDTO, error)
+
+    }
+    interface InvalidateProductsCache  {
+        + Perform(ctx context.Context, userID uint64) error
+
+    }
+    interface LatestProducts  {
+        + Perform(ctx context.Context, userID uint64, limit uint) ([]UserProductResultDTO, error)
+
+    }
+    interface MainAstrologyProfileGetter  {
+        + Perform(ctx context.Context, userID uint64) (*AstrologyProfileDTO, error)
+
+    }
+    interface ProductAdapterService  {
+        + FromUserProduct(p UserProductDTO) UserProductResultDTO
+        + FromID(p uint) ProductResultDTO
+        + FromAbbreviation(a string) UserProductResultDTO
+        + FromEventDetail(d UserProductEventDetail) UserProductAllFieldsDTO
+
+    }
+    interface ProductFiler  {
+        + Perform(ctx context.Context, userID uint64, code string) error
+
+    }
+    interface ProductResultCacheInvalidator  {
+        + Perform(ctx context.Context, code string) error
+
+    }
+    class ProductResultDTO << (S,Aquamarine) >> {
+        + ID uint
+
+    }
+    interface ProductSuggestions  {
+        + Perform(ctx context.Context, userID uint64, limit uint) ([]ProductResultDTO, error)
+
+    }
+    class ProductTranslatedDTO << (S,Aquamarine) >> {
+        + Name string
+        + Abbreviation string
+
+    }
+    class SiteDTO << (S,Aquamarine) >> {
+        + SiteID SiteID
+        + Domain string
+
+    }
+    interface SiteIDTranslatorService  {
+        + Translate(siteID SiteID) (SiteDTO, error)
+
+    }
+    interface UsedProductsComplete  {
+        + Perform(ctx context.Context, userID uint64, profileID uint64, productIDs []uint) ([]UserProductResultDTO, error)
+
+    }
+    interface UsedProductsMini  {
+        + Perform(ctx context.Context, userID uint64, profileID uint64, productIDs []uint) ([]UserProductResultDTO, error)
+
+    }
+    class UserProductAllFieldsDTO << (S,Aquamarine) >> {
+        + Code string
+        + CreatedAt time.Time
+        + EndingAt *time.Time
+        + ExpireAt *time.Time
+        + Extra <font color=blue>map</font>[string]<font color=blue>interface</font>{}
+        + ID uint
+        + MainProfile bool
+        + Mini bool
+        + ProductID uint
+        + ProfileID *uint64
+        + ProfileName string
+        + SiteID uint
+        + Status uint8
+        + UserID uint64
+        + Visible bool
+
+    }
+    class UserProductDTO << (S,Aquamarine) >> {
+        + ID uint
+        + Code string
+        + CreatedAt time.Time
+        + ExpireAt *time.Time
+        + EndingAt *time.Time
+        + Mini bool
+
+    }
+    class UserProductEventDetail << (S,Aquamarine) >> {
+        + ProductCode string
+        + ProductCreatedAt string
+        + EndingAt string
+        + ExpireAt string
+        + Extra <font color=blue>map</font>[string]<font color=blue>interface</font>{}
+        + ID uint
+        + MainProfile bool
+        + Mini bool
+        + ProductID uint
+        + ProfileID *uint64
+        + ProfileName string
+        + SiteID uint
+        + ProductStatus uint8
+        + Type uint8
+        + UserID uint64
+        + Visible bool
+
+    }
+    interface UserProductRepository  {
+        + EndingProductsComplete(ctx context.Context, userID uint64) ([]UserProductDTO, error)
+        + EndingProductsMini(ctx context.Context, userID uint64) ([]UserProductDTO, error)
+        + ExpiredProductsComplete(ctx context.Context, userID uint64) ([]UserProductDTO, error)
+        + ExpiredProductsMini(ctx context.Context, userID uint64) ([]UserProductDTO, error)
+        + LatestProducts(ctx context.Context, userID uint64, limit uint) ([]UserProductDTO, error)
+        + UsedProducts(ctx context.Context, userID uint64) ([]uint, error)
+        + UsedProductsComplete(ctx context.Context, userID uint64, profileID uint64, productIDs []uint) ([]UserProductDTO, error)
+        + UsedProductsMini(ctx context.Context, userID uint64, profileID uint64, productIDs []uint) ([]UserProductDTO, error)
+        + Save(ctx context.Context, product UserProductAllFieldsDTO) (UserProductAllFieldsDTO, error)
+
+    }
+    class UserProductResultDTO << (S,Aquamarine) >> {
+    }
+    interface UserProductRuler  {
+        + Execute(ctx context.Context, event EventData) (UserProductEventDetail, error)
+
+    }
+    class astrologyChartURLBuilder << (S,Aquamarine) >> {
+        - config crosscut.Config
+        - loggingService logging.Service
+        - cachingService caching.Service
+        - astrologyRepository AstrologyRepository
+        - birthDateIDService BirthDateIDService
+        - siteIDTranslatorService SiteIDTranslatorService
+
+        + Perform(ctx context.Context, params AstrologyChartParam) (string, error)
+
+    }
+    class createUserProduct << (S,Aquamarine) >> {
+        - loggingService logging.Service
+        - userProductRepository UserProductRepository
+        - userProductRuler UserProductRuler
+        - adaptProductService ProductAdapterService
+
+        + Perform(ctx context.Context, eventData EventData) (UserProductAllFieldsDTO, error)
+
+    }
+    class endingProductsComplete << (S,Aquamarine) >> {
+        - config crosscut.Config
+        - loggingService logging.Service
+        - cachingService caching.Service
+        - userProductRepository UserProductRepository
+        - translateProductService ProductAdapterService
+
+        - fetchEndingProductsComplete(ctx context.Context, userID uint64) ([]UserProductDTO, error)
+        - fetchEndingProductsCompleteFromCache(ctx context.Context, userID uint64) ([]UserProductDTO, error)
+        - setEndingProductsCompleteToCache(ctx context.Context, userID uint64, products []UserProductDTO) error
+
+        + Perform(ctx context.Context, userID uint64) ([]UserProductResultDTO, error)
+
+    }
+    class endingProductsMini << (S,Aquamarine) >> {
+        - config crosscut.Config
+        - loggingService logging.Service
+        - cachingService caching.Service
+        - userProductRepository UserProductRepository
+        - translateProductService ProductAdapterService
+
+        - fetchEndingProductsMini(ctx context.Context, userID uint64) ([]UserProductDTO, error)
+        - fetchEndingProductsMiniFromCache(ctx context.Context, userID uint64) ([]UserProductDTO, error)
+        - setEndingProductsMiniToCache(ctx context.Context, userID uint64, products []UserProductDTO) error
+
+        + Perform(ctx context.Context, userID uint64) ([]UserProductResultDTO, error)
+
+    }
+    class expiredProductsComplete << (S,Aquamarine) >> {
+        - config crosscut.Config
+        - loggingService logging.Service
+        - cachingService caching.Service
+        - userProductRepository UserProductRepository
+        - translateProductService ProductAdapterService
+
+        - fetchExpiredProductsComplete(ctx context.Context, userID uint64) ([]UserProductDTO, error)
+        - fetchExpiredProductsCompleteFromCache(ctx context.Context, userID uint64) ([]UserProductDTO, error)
+        - setExpiredProductsCompleteToCache(ctx context.Context, userID uint64, products []UserProductDTO) error
+
+        + Perform(ctx context.Context, userID uint64) ([]UserProductResultDTO, error)
+
+    }
+    class expiredProductsMini << (S,Aquamarine) >> {
+        - config crosscut.Config
+        - loggingService logging.Service
+        - cachingService caching.Service
+        - userProductRepository UserProductRepository
+        - translateProductService ProductAdapterService
+
+        - fetchExpiredProductsMini(ctx context.Context, userID uint64) ([]UserProductDTO, error)
+        - fetchExpiredProductsMiniFromCache(ctx context.Context, userID uint64) ([]UserProductDTO, error)
+        - setExpiredProductsMiniToCache(ctx context.Context, userID uint64, products []UserProductDTO) error
+
+        + Perform(ctx context.Context, userID uint64) ([]UserProductResultDTO, error)
+
+    }
+    class invalidateProductsCache << (S,Aquamarine) >> {
+        - config crosscut.Config
+        - loggingService logging.Service
+        - cachingService caching.Service
+
+        + Perform(ctx context.Context, userID uint64) error
+
+    }
+    class latestProducts << (S,Aquamarine) >> {
+        - config crosscut.Config
+        - loggingService logging.Service
+        - cachingService caching.Service
+        - userProductRepository UserProductRepository
+        - productAdapterService ProductAdapterService
+
+        - fetch(ctx context.Context, userID uint64, limit uint) ([]UserProductDTO, error)
+        - fetchFromCache(ctx context.Context, userID uint64, limit uint) []UserProductDTO
+        - setCache(ctx context.Context, userID uint64, limit uint, products []UserProductDTO) 
+
+        + Perform(ctx context.Context, userID uint64, limit uint) ([]UserProductResultDTO, error)
+
+    }
+    class mainAstrologyProfileGetter << (S,Aquamarine) >> {
+        - loggingService logging.Service
+        - repository AstrologyProfileRepository
+        - dateParser BirthDateService
+        - birthDateIDService BirthDateIDService
+
+        + Perform(ctx context.Context, userID uint64) (*AstrologyProfileDTO, error)
+
+    }
+    class productFiler << (S,Aquamarine) >> {
+        - loggingService logging.Service
+        - repository GeneratedProductRepository
+        - eventService EventService
+
+        + Perform(ctx context.Context, userID uint64, code string) error
+
+    }
+    class productResultCacheInvalidator << (S,Aquamarine) >> {
+        - config crosscut.Config
+        - loggingService logging.Service
+        - cachingService caching.Service
+        - repository GeneratedProductRepository
+
+        + Perform(ctx context.Context, code string) error
+
+    }
+    class productSuggestions << (S,Aquamarine) >> {
+        - config crosscut.Config
+        - loggingService logging.Service
+        - cachingService caching.Service
+        - userProductRepository UserProductRepository
+        - productAdapterService ProductAdapterService
+
+        - fetchSuggestions(ctx context.Context, userID uint64) ([]uint, error)
+        - adaptProducts(products []uint) []ProductResultDTO
+        - fetchSuggestionsFromCache(ctx context.Context, userID uint64) ([]uint, error)
+        - setSuggestionsToCache(ctx context.Context, userID uint64, suggestions []uint) error
+
+        + Perform(ctx context.Context, userID uint64, limit uint) ([]ProductResultDTO, error)
+
+    }
+    class rfc3339BirthDateService << (S,Aquamarine) >> {
+        + Parse(dateTime string, timeZone string) time.Time
+
+    }
+    class usecase.SiteID << (T, #FF7700) >>  {
+    }
+    class usedProductsComplete << (S,Aquamarine) >> {
+        - config crosscut.Config
+        - loggingService logging.Service
+        - cachingService caching.Service
+        - userProductRepository UserProductRepository
+        - productAdapterService ProductAdapterService
+
+        - fetchUsedProductsComplete(ctx context.Context, userID uint64, profileID uint64, productIDs []uint) ([]UserProductDTO, error)
+        - fetchUsedProductsCompleteFromCache(ctx context.Context, userID uint64, profileID uint64, productIDs []uint) ([]UserProductDTO, error)
+        - setUsedProductsCompleteToCache(ctx context.Context, userID uint64, profileID uint64, productIDs []uint, products []UserProductDTO) error
+
+        + Perform(ctx context.Context, userID uint64, profileID uint64, productIDs []uint) ([]UserProductResultDTO, error)
+
+    }
+    class usedProductsMini << (S,Aquamarine) >> {
+        - config crosscut.Config
+        - loggingService logging.Service
+        - cachingService caching.Service
+        - userProductRepository UserProductRepository
+        - productAdapterService ProductAdapterService
+
+        - fetchUsedProductsMini(ctx context.Context, userID uint64, profileID uint64, productIDs []uint) ([]UserProductDTO, error)
+        - fetchUsedProductsMiniFromCache(ctx context.Context, userID uint64, profileID uint64, productIDs []uint) ([]UserProductDTO, error)
+        - setUsedProductsMiniToCache(ctx context.Context, userID uint64, profileID uint64, productIDs []uint, products []UserProductDTO) error
+
+        + Perform(ctx context.Context, userID uint64, profileID uint64, productIDs []uint) ([]UserProductResultDTO, error)
+
+    }
+    class userProductRuler << (S,Aquamarine) >> {
+        - rulerType entity.UserProductRulerType
+
+        + Execute(ctx context.Context, event EventData) (UserProductEventDetail, error)
+
+    }
+}
+"usecase.ProductTranslatedDTO" *-- "usecase.ProductResultDTO"
+"usecase.ProductTranslatedDTO" *-- "usecase.UserProductResultDTO"
+"usecase.UserProductDTO" *-- "usecase.UserProductResultDTO"
+
+"usecase.AstrologyChartURLBuilder" <|-- "usecase.astrologyChartURLBuilder"
+"usecase.CreateUserProduct" <|-- "usecase.createUserProduct"
+"usecase.EndingProductsComplete" <|-- "usecase.endingProductsComplete"
+"usecase.EndingProductsMini" <|-- "usecase.endingProductsComplete"
+"usecase.ExpiredProductsComplete" <|-- "usecase.endingProductsComplete"
+"usecase.ExpiredProductsMini" <|-- "usecase.endingProductsComplete"
+"usecase.EndingProductsComplete" <|-- "usecase.endingProductsMini"
+"usecase.EndingProductsMini" <|-- "usecase.endingProductsMini"
+"usecase.ExpiredProductsComplete" <|-- "usecase.endingProductsMini"
+"usecase.ExpiredProductsMini" <|-- "usecase.endingProductsMini"
+"usecase.EndingProductsComplete" <|-- "usecase.expiredProductsComplete"
+"usecase.EndingProductsMini" <|-- "usecase.expiredProductsComplete"
+"usecase.ExpiredProductsComplete" <|-- "usecase.expiredProductsComplete"
+"usecase.ExpiredProductsMini" <|-- "usecase.expiredProductsComplete"
+"usecase.EndingProductsComplete" <|-- "usecase.expiredProductsMini"
+"usecase.EndingProductsMini" <|-- "usecase.expiredProductsMini"
+"usecase.ExpiredProductsComplete" <|-- "usecase.expiredProductsMini"
+"usecase.ExpiredProductsMini" <|-- "usecase.expiredProductsMini"
+"usecase.InvalidateProductsCache" <|-- "usecase.invalidateProductsCache"
+"usecase.LatestProducts" <|-- "usecase.latestProducts"
+"usecase.MainAstrologyProfileGetter" <|-- "usecase.mainAstrologyProfileGetter"
+"usecase.ProductFiler" <|-- "usecase.productFiler"
+"usecase.ProductResultCacheInvalidator" <|-- "usecase.productResultCacheInvalidator"
+"usecase.ProductSuggestions" <|-- "usecase.productSuggestions"
+"usecase.BirthDateService" <|-- "usecase.rfc3339BirthDateService"
+"usecase.UsedProductsComplete" <|-- "usecase.usedProductsComplete"
+"usecase.UsedProductsMini" <|-- "usecase.usedProductsComplete"
+"usecase.UsedProductsComplete" <|-- "usecase.usedProductsMini"
+"usecase.UsedProductsMini" <|-- "usecase.usedProductsMini"
+"usecase.UserProductRuler" <|-- "usecase.userProductRuler"
+
+"__builtin__.<font color=blue>map</font>[string]string" #.. "http.RequestHeaders"
+"__builtin__.<font color=blue>map</font>[string]string" #.. "http.ResponseHeaders"
+"__builtin__.string" #.. "api.ProductAbbreviation"
+"__builtin__.uint" #.. "usecase.SiteID"
+"graphql.<font color=blue>func</font>(Controlling) Controlling" #.. "graphql.Adapter"
+"graphql.fontcolorbluefuncfontcontextContextstringEventResponse" #.. "graphql.HandlerFunc"
+"http.<font color=blue>func</font>(WebControlling) WebControlling" #.. "http.Adapter"
+"http.fontcolorbluefuncfontcontextContextRequestResponse" #.. "http.HandlerFunc"
+"logging.<font color=blue>map</font>[string]any" #.. "logging.Fields"
+@enduml

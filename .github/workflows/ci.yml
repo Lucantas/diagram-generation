@@ -1,0 +1,37 @@
+name: PlantUML Diagram Generation
+
+on:
+  push:
+    branches:
+      - main  # Defina a branch que irá acionar o workflow (ex: main, master)
+
+jobs:
+  generate_diagram:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Install PlantUML
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y default-jre
+
+      - name: Install plantuml-cli
+        run: |
+          sudo apt-get install -y plantuml
+
+      - name: Generate PlantUML Image
+        run: |
+          plantuml docs/sequence-diagrams/application.puml
+
+      - name: Commit Image Changes
+        run: |
+          git config --global user.email "ci@example.com"
+          git config --global user.name "CI Bot"
+          git add docs/sequence-diagrams/application.png
+          git commit -m "Generate PlantUML image"
+          git push
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
