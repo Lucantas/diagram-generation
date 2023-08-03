@@ -28,7 +28,7 @@ jobs:
 
       - name: Commit Image Changes
         run: |
-          git config --global user.email "ci@example.com"
+          git config --global user.email "cibot@example.com"
           git config --global user.name "CI Bot"
           git add docs/sequence-diagrams/application.png
           git commit -m "Generate PlantUML image"
