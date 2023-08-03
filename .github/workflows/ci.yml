@@ -3,7 +3,7 @@ name: PlantUML Diagram Generation
 on:
   push:
     branches:
-      - main  # Defina a branch que irá acionar o workflow (ex: main, master)
+      - master
 
 jobs:
   generate_diagram:
